@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>GIRO — Controle do Motorista</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#08090b">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GIRO">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08090b;
+  --surface:#131418;
+  --surface-2:#1b1d23;
+  --surface-3:#232630;
+  --border:#26282f;
+  --text:#f2f2ee;
+  --text-muted:#8b8d97;
+  --text-dim:#5c5e68;
+  --yellow:#eab308;
+  --green:#22c55e;
+  --red:#ef4444;
+  --cyan:#22d3ee;
+  --uber:#ffffff;
+  --pop99:#ffd23f;
+  --indrive:#8fd14f;
+  --particular:#c084fc;
+  --gas:#f97316;
+  --alcool:#4ade80;
+  --gnv:#38bdf8;
+  --eletrico:#a78bfa;
+  --radius:18px;
+  --radius-sm:12px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(circle at 50% -10%, #14161b 0%, var(--bg) 45%) fixed;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  padding-bottom:84px;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.display{font-family:'Space Grotesk',sans-serif;}
+
+/* Header */
+header.app-header{
+  position:sticky; top:0; z-index:20;
+  background:rgba(8,9,11,0.88);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  padding:14px 18px 12px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.logo{display:flex; align-items:center; gap:9px;}
+.logo svg{width:26px;height:26px;}
+.logo-text{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:19px; letter-spacing:0.5px;}
+.logo-text span{color:var(--yellow);}
+.header-date{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); text-transform:capitalize; text-align:right;}
+
+main{max-width:520px; margin:0 auto; padding:16px 14px 10px;}
+
+.tab-panel{display:none; animation:fadein .25s ease;}
+.tab-panel.active{display:block;}
+@keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+/* Cards */
+.card{
+  background:linear-gradient(180deg, var(--surface) 0%, #101116 100%);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:12px;
+}
+.card-title{
+  font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:13px;
+  color:var(--text-muted); text-transform:uppercase; letter-spacing:0.9px;
+  margin:0 0 12px 0; display:flex; align-items:center; justify-content:space-between;
+}
+
+/* Taximeter (signature element) */
+.taximeter{
+  border-radius:var(--radius);
+  padding:18px 18px 16px;
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--border);
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px),
+    linear-gradient(160deg, #121319 0%, #0a0b0e 100%);
+}
+.taximeter .tm-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+.tm-label{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; font-family:'Space Grotesk',sans-serif; font-weight:600;}
+.tm-badge{font-size:10px; font-family:'JetBrains Mono',monospace; padding:3px 8px; border-radius:20px; border:1px solid var(--border); color:var(--text-muted);}
+.tm-display{
+  font-family:'JetBrains Mono',monospace; font-weight:700; font-size:44px; line-height:1;
+  letter-spacing:0.5px; margin:10px 0 4px;
+  text-shadow:0 0 18px currentColor;
+  transition:color .4s ease;
+}
+.tm-sub{display:flex; gap:16px; margin-top:10px; flex-wrap:wrap;}
+.tm-stat{font-size:11px; color:var(--text-muted);}
+.tm-stat b{display:block; font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--text); font-weight:600; margin-top:2px;}
+.tm-glow{
+  position:absolute; top:-40%; right:-20%; width:220px; height:220px; border-radius:50%;
+  filter:blur(60px); opacity:0.18; pointer-events:none; transition:background .4s ease;
+}
+
+/* Progress bars (goals) */
+.goal-row{margin-bottom:14px;}
+.goal-row:last-child{margin-bottom:0;}
+.goal-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;}
+.goal-name{font-size:12.5px; color:var(--text-muted); font-weight:500;}
+.goal-val{font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text);}
+.goal-track{height:9px; border-radius:6px; background:var(--surface-3); overflow:hidden; position:relative;}
+.goal-fill{height:100%; border-radius:6px; transition:width .5s ease, background .4s ease; position:relative;}
+.goal-fill::after{content:""; position:absolute; inset:0; background:linear-gradient(90deg, rgba(255,255,255,0.15), rgba(255,255,255,0));}
+
+/* Bar chart */
+.chart-wrap{overflow-x:auto;}
+.bar-chart{display:flex; align-items:flex-end; gap:8px; height:130px; padding-top:8px;}
+.bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:28px;}
+.bar-val{font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--text-dim); margin-bottom:4px; white-space:nowrap;}
+.bar{width:100%; max-width:34px; border-radius:6px 6px 3px 3px; transition:height .4s ease, background .4s ease; min-height:3px;}
+.bar-label{font-size:10px; color:var(--text-muted); margin-top:6px; font-family:'JetBrains Mono',monospace;}
+.zero-line{width:100%; height:1px; background:var(--border); margin:2px 0;}
+
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.stat-box{background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:11px 12px;}
+.stat-box .lbl{font-size:10.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;}
+.stat-box .v{font-family:'JetBrains Mono',monospace; font-weight:600; font-size:16px; margin-top:3px;}
+
+.platform-list, .fuel-list{display:flex; flex-direction:column; gap:9px;}
+.plat-row{display:flex; align-items:center; gap:10px;}
+.dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+.plat-name{font-size:13px; flex:1; color:var(--text);}
+.plat-val{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text-muted);}
+.plat-bar-track{height:5px; background:var(--surface-3); border-radius:4px; margin-top:4px; overflow:hidden;}
+.plat-bar-fill{height:100%; border-radius:4px;}
+
+/* Forms */
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:500;}
+.field input, .field select, .field textarea{
+  width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text);
+  padding:11px 12px; border-radius:var(--radius-sm); font-size:15px; font-family:'Inter',sans-serif;
+}
+.field input.mono-input{font-family:'JetBrains Mono',monospace;}
+.field input:focus, .field select:focus, .field textarea:focus{outline:none; border-color:var(--yellow);}
+.seg{display:flex; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:3px; gap:3px;}
+.seg button{flex:1; padding:10px 6px; border:none; background:transparent; color:var(--text-muted); border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:'Inter',sans-serif;}
+.seg button.active{background:var(--surface-3); color:var(--text);}
+.chip-row{display:flex; flex-wrap:wrap; gap:8px;}
+.chip{
+  padding:9px 13px; border-radius:20px; border:1px solid var(--border); background:var(--surface-2);
+  color:var(--text-muted); font-size:13px; font-weight:500; cursor:pointer; display:flex; align-items:center; gap:6px;
+}
+.chip.active{border-color:var(--yellow); color:var(--text); background:var(--surface-3);}
+.chip .dot{width:8px;height:8px;}
+
+.btn-primary{
+  width:100%; padding:14px; border:none; border-radius:var(--radius-sm); font-family:'Space Grotesk',sans-serif;
+  font-weight:700; font-size:15px; cursor:pointer; background:linear-gradient(135deg, var(--yellow), #f59e0b); color:#1a1200;
+  letter-spacing:0.3px;
+}
+.btn-secondary{
+  width:100%; padding:12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2);
+  color:var(--text); font-weight:600; cursor:pointer; font-size:14px; font-family:'Inter',sans-serif;
+}
+.btn-danger{background:transparent; border:none; color:var(--red); font-size:12px; cursor:pointer; font-weight:600; padding:4px;}
+
+/* History */
+.hist-summary{display:flex; gap:10px; margin-bottom:14px;}
+.hist-summary .stat-box{flex:1;}
+.month-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+.month-nav button{background:var(--surface-2); border:1px solid var(--border); color:var(--text); width:36px; height:36px; border-radius:10px; font-size:16px; cursor:pointer;}
+.month-nav .m-label{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:14px; text-transform:capitalize;}
+.day-group{margin-bottom:16px;}
+.day-group-head{display:flex; justify-content:space-between; align-items:baseline; padding:0 2px 8px; border-bottom:1px solid var(--border); margin-bottom:8px;}
+.day-group-head .dg-date{font-size:12px; color:var(--text-muted); font-weight:600; text-transform:capitalize;}
+.day-group-head .dg-net{font-family:'JetBrains Mono',monospace; font-size:12.5px; font-weight:700;}
+.entry-row{display:flex; align-items:center; gap:10px; padding:10px 4px; border-bottom:1px solid rgba(255,255,255,0.03);}
+.entry-row:last-child{border-bottom:none;}
+.entry-icon{width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; font-weight:700; font-family:'Space Grotesk',sans-serif;}
+.entry-info{flex:1; min-width:0;}
+.entry-title{font-size:13.5px; color:var(--text); font-weight:500;}
+.entry-sub{font-size:11px; color:var(--text-dim); margin-top:1px;}
+.entry-val{font-family:'JetBrains Mono',monospace; font-size:13.5px; font-weight:600; white-space:nowrap;}
+.entry-del{background:none; border:none; color:var(--text-dim); font-size:16px; cursor:pointer; padding:4px 2px;}
+.empty-state{text-align:center; padding:36px 16px; color:var(--text-dim);}
+.empty-state .es-icon{font-size:30px; margin-bottom:8px; opacity:0.5;}
+.empty-state .es-title{color:var(--text-muted); font-weight:600; margin-bottom:4px; font-family:'Space Grotesk',sans-serif;}
+.empty-state .es-sub{font-size:12.5px; line-height:1.5;}
+
+/* Bottom nav */
+nav.bottom-nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:30;
+  background:rgba(11,12,15,0.92); backdrop-filter:blur(14px);
+  border-top:1px solid var(--border);
+  display:flex; padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+}
+nav.bottom-nav button{
+  flex:1; background:none; border:none; color:var(--text-dim); display:flex; flex-direction:column;
+  align-items:center; gap:4px; padding:6px 2px; cursor:pointer; font-family:'Inter',sans-serif; font-size:10.5px;
+}
+nav.bottom-nav button svg{width:20px; height:20px;}
+nav.bottom-nav button.active{color:var(--yellow);}
+
+.toast{
+  position:fixed; bottom:96px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:var(--surface-3); border:1px solid var(--border); color:var(--text); padding:10px 18px;
+  border-radius:30px; font-size:13px; font-weight:500; z-index:50; transition:all .3s ease; pointer-events:none;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+.section-note{font-size:11.5px; color:var(--text-dim); line-height:1.5; margin:-4px 0 14px; padding:0 2px;}
+.divider-label{font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin:18px 0 10px 2px; font-weight:600;}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" stroke="#eab308" stroke-width="1.6"/><path d="M12 12 L12 6.5" stroke="#eab308" stroke-width="1.8" stroke-linecap="round"/><path d="M12 12 L16 14.5" stroke="#f2f2ee" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="#eab308"/></svg>
+    <div class="logo-text">GIR<span>O</span></div>
+  </div>
+  <div class="header-date" id="headerDate">—</div>
+</header>
+
+<main>
+
+  <!-- PAINEL -->
+  <section class="tab-panel active" id="tab-painel">
+
+    <div class="taximeter" id="taximeter">
+      <div class="tm-glow" id="tmGlow"></div>
+      <div class="tm-top">
+        <span class="tm-label">Líquido de hoje</span>
+        <span class="tm-badge" id="tmBadge">—</span>
+      </div>
+      <div class="tm-display mono" id="tmValue">R$ 0,00</div>
+      <div class="tm-sub">
+        <div class="tm-stat">Receita<b id="tmReceita">R$ 0,00</b></div>
+        <div class="tm-stat">Despesa<b id="tmDespesa">R$ 0,00</b></div>
+        <div class="tm-stat">Km hoje<b id="tmKm">0</b></div>
+        <div class="tm-stat">R$/km<b id="tmRkm">—</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Metas</p>
+      <div class="goal-row">
+        <div class="goal-head"><span class="goal-name">Diária</span><span class="goal-val" id="gDiariaVal">—</span></div>
+        <div class="goal-track"><div class="goal-fill" id="gDiariaFill"></div></div>
+      </div>
+      <div class="goal-row">
+        <div class="goal-head"><span class="goal-name">Semanal</span><span class="goal-val" id="gSemanalVal">—</span></div>
+        <div class="goal-track"><div class="goal-fill" id="gSemanalFill"></div></div>
+      </div>
+      <div class="goal-row">
+        <div class="goal-head"><span class="goal-name">Mensal</span><span class="goal-val" id="gMensalVal">—</span></div>
+        <div class="goal-track"><div class="goal-fill" id="gMensalFill"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="month-nav" style="margin-bottom:10px;">
+        <button id="weekPrev">‹</button>
+        <span class="m-label" id="weekRangeLabel">—</span>
+        <button id="weekNext">›</button>
+      </div>
+      <div class="chart-wrap"><div class="bar-chart" id="weekChart"></div></div>
+      <div class="stat-grid" style="margin-top:12px;">
+        <div class="stat-box"><div class="lbl">Líquido da semana</div><div class="v" id="weekNet">R$ 0,00</div></div>
+        <div class="stat-box"><div class="lbl">Projeção da semana</div><div class="v" id="weekProj">R$ 0,00</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Mês <span id="monthRangeLbl" style="text-transform:capitalize; letter-spacing:0; font-weight:400; color:var(--text-dim);"></span></p>
+      <div class="chart-wrap"><div class="bar-chart" id="monthChart"></div></div>
+      <div class="stat-grid" style="margin-top:12px;">
+        <div class="stat-box"><div class="lbl">Líquido do mês</div><div class="v" id="monthNet">R$ 0,00</div></div>
+        <div class="stat-box"><div class="lbl">Projeção do mês</div><div class="v" id="monthProj">R$ 0,00</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Por plataforma <span style="text-transform:none; letter-spacing:0; font-weight:400; color:var(--text-dim);">mês atual</span></p>
+      <div class="platform-list" id="platformList"></div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Combustível <span style="text-transform:none; letter-spacing:0; font-weight:400; color:var(--text-dim);">mês atual</span></p>
+      <div class="fuel-list" id="fuelList"></div>
+    </div>
+
+  </section>
+
+  <!-- REGISTRAR -->
+  <section class="tab-panel" id="tab-registrar">
+    <div class="card">
+      <p class="card-title">Tipo de lançamento</p>
+      <div class="seg" id="tipoSeg">
+        <button data-tipo="receita" class="active">Receita</button>
+        <button data-tipo="despesa">Despesa</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Data</label>
+      <input type="date" id="fData" class="mono-input">
+    </div>
+
+    <!-- RECEITA fields -->
+    <div id="blocoReceita">
+      <div class="card">
+        <p class="card-title">Plataforma</p>
+        <div class="chip-row" id="platChips">
+          <div class="chip active" data-plat="Uber"><span class="dot" style="background:var(--uber)"></span>Uber</div>
+          <div class="chip" data-plat="99Pop"><span class="dot" style="background:var(--pop99)"></span>99Pop</div>
+          <div class="chip" data-plat="inDrive"><span class="dot" style="background:var(--indrive)"></span>inDrive</div>
+          <div class="chip" data-plat="Particular"><span class="dot" style="background:var(--particular)"></span>Particular</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Valor recebido (R$)</label>
+        <input type="number" inputmode="decimal" step="0.01" id="fValorReceita" class="mono-input" placeholder="0,00">
+      </div>
+      <div class="field">
+        <label>Km rodado no período (opcional)</label>
+        <input type="number" inputmode="decimal" step="0.1" id="fKmReceita" class="mono-input" placeholder="0">
+      </div>
+    </div>
+
+    <!-- DESPESA fields -->
+    <div id="blocoDespesa" style="display:none;">
+      <div class="card">
+        <p class="card-title">Categoria</p>
+        <div class="chip-row" id="catChips">
+          <div class="chip active" data-cat="combustivel">Combustível</div>
+          <div class="chip" data-cat="lanche">Lanche</div>
+          <div class="chip" data-cat="veiculo">Veículo</div>
+          <div class="chip" data-cat="outros">Outros</div>
+        </div>
+      </div>
+
+      <div id="blocoCombustivel">
+        <div class="card">
+          <p class="card-title">Combustível</p>
+          <div class="chip-row" id="fuelChips">
+            <div class="chip active" data-fuel="Gasolina"><span class="dot" style="background:var(--gas)"></span>Gasolina</div>
+            <div class="chip" data-fuel="Álcool"><span class="dot" style="background:var(--alcool)"></span>Álcool</div>
+            <div class="chip" data-fuel="GNV"><span class="dot" style="background:var(--gnv)"></span>GNV</div>
+            <div class="chip" data-fuel="Elétrico"><span class="dot" style="background:var(--eletrico)"></span>Elétrico (carga)</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="blocoVeiculoLabel" style="display:none;">
+        <p class="section-note" id="veiculoNote">Configure em Metas se o veículo é alugado ou financiado.</p>
+      </div>
+
+      <div id="blocoOutrosLabel" style="display:none;">
+        <div class="field">
+          <label>Descrição</label>
+          <input type="text" id="fOutrosDesc" placeholder="Ex: lavagem, pedágio, estacionamento...">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Valor gasto (R$)</label>
+        <input type="number" inputmode="decimal" step="0.01" id="fValorDespesa" class="mono-input" placeholder="0,00">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Observação (opcional)</label>
+      <input type="text" id="fObs" placeholder="Alguma nota sobre esse lançamento...">
+    </div>
+
+    <button class="btn-primary" id="btnSalvar">Registrar</button>
+  </section>
+
+  <!-- HISTÓRICO -->
+  <section class="tab-panel" id="tab-historico">
+    <div class="month-nav">
+      <button id="prevMonth">‹</button>
+      <span class="m-label" id="histMonthLabel">—</span>
+      <button id="nextMonth">›</button>
+    </div>
+    <div class="hist-summary">
+      <div class="stat-box"><div class="lbl">Receita</div><div class="v" style="color:var(--green)" id="histReceita">R$ 0,00</div></div>
+      <div class="stat-box"><div class="lbl">Despesa</div><div class="v" style="color:var(--red)" id="histDespesa">R$ 0,00</div></div>
+      <div class="stat-box"><div class="lbl">Líquido</div><div class="v" id="histLiquido">R$ 0,00</div></div>
+    </div>
+    <div id="histList"></div>
+  </section>
+
+  <!-- METAS / CONFIG -->
+  <section class="tab-panel" id="tab-config">
+    <div class="card">
+      <p class="card-title">Metas financeiras</p>
+      <div class="field"><label>Meta diária (R$)</label><input type="number" inputmode="decimal" id="cfgMetaDiaria" class="mono-input" placeholder="0,00"></div>
+      <div class="field"><label>Meta semanal (R$)</label><input type="number" inputmode="decimal" id="cfgMetaSemanal" class="mono-input" placeholder="0,00"></div>
+      <div class="field" style="margin-bottom:0;"><label>Meta mensal (R$)</label><input type="number" inputmode="decimal" id="cfgMetaMensal" class="mono-input" placeholder="0,00"></div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Situação do veículo</p>
+      <div class="seg" id="vehicleSeg">
+        <button data-v="alugado" class="active">Alugado</button>
+        <button data-v="comprado">Financiado</button>
+        <button data-v="proprio">Próprio (quitado)</button>
+      </div>
+      <p class="section-note" id="vehicleHelp" style="margin-top:12px;">Ao registrar uma despesa de "Veículo", ela será marcada como Aluguel.</p>
+      <div id="blocoPeriodo">
+        <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:500;">Periodicidade do pagamento</label>
+        <div class="seg" id="periodoSeg" style="margin-bottom:14px;">
+          <button data-p="semanal">Semanal</button>
+          <button data-p="mensal" class="active">Mensal</button>
+        </div>
+      </div>
+      <div class="field" id="blocoValorVeiculo" style="margin-bottom:10px;">
+        <label id="lblValorVeiculo">Valor do aluguel (R$)</label>
+        <input type="number" inputmode="decimal" id="cfgValorVeiculo" class="mono-input" placeholder="0,00">
+      </div>
+      <div class="stat-grid" id="blocoVeiculoBreakdown" style="margin-bottom:0;">
+        <div class="stat-box"><div class="lbl">Custo por semana</div><div class="v" id="vbSemana">—</div></div>
+        <div class="stat-box"><div class="lbl">Custo por dia</div><div class="v" id="vbDia">—</div></div>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="btnSalvarConfig">Salvar configurações</button>
+
+    <div class="divider-label">Importar extrato</div>
+    <div class="card">
+      <p class="card-title">Colar lançamentos (CSV)</p>
+      <p class="section-note" style="margin-top:0;">Um lançamento por linha: <b>data,plataforma,valor,km(opcional)</b>. Funciona também pra extratos de semanas passadas — cada linha usa sua própria data, então várias semanas de uma vez são somadas automaticamente no histórico e nos gráficos.</p>
+      <div class="field">
+        <label>Exemplo: 15/08/2026,Uber,120.50,42</label>
+        <textarea id="csvInput" rows="5" placeholder="15/08/2026,Uber,120.50,42&#10;15/08/2026,99Pop,45.00&#10;08/08/2026,inDrive,60.00"></textarea>
+      </div>
+      <button class="btn-secondary" id="btnImportCsv">Importar lançamentos</button>
+    </div>
+
+    <div class="divider-label">Dados</div>
+    <div class="card">
+      <p class="section-note" style="margin:0 0 12px;">Seus lançamentos ficam salvos neste dispositivo/conta. Use o botão abaixo apenas se quiser apagar tudo e recomeçar.</p>
+      <button class="btn-secondary" id="btnReset">Apagar todos os dados</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<nav class="bottom-nav">
+  <button data-tab="painel" class="active">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="12" width="4" height="8" rx="1"/><rect x="10" y="7" width="4" height="13" rx="1"/><rect x="17" y="3" width="4" height="17" rx="1"/></svg>
+    Painel
+  </button>
+  <button data-tab="registrar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8" stroke-linecap="round"/></svg>
+    Registrar
+  </button>
+  <button data-tab="historico">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg>
+    Histórico
+  </button>
+  <button data-tab="config">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M5 5l1.5 1.5M17.5 17.5L19 19M3 12h2M19 12h2M5 19l1.5-1.5M17.5 6.5L19 5" stroke-linecap="round"/></svg>
+    Metas
+  </button>
+</nav>
+
+<script>
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "giro-driver-state";
+  var DEFAULT_STATE = {
+    config:{ vehicleMode:"alugado", valorVeiculo:0, vehiclePeriod:"mensal", metaDiaria:150, metaSemanal:900, metaMensal:3800 },
+    entries: []
+  };
+  var state = null;
+  var histCursor = new Date(); histCursor.setDate(1);
+
+  var PLAT_COLORS = { "Uber":"#ffffff", "99Pop":"#ffd23f", "inDrive":"#8fd14f", "Particular":"#c084fc" };
+  var FUEL_COLORS = { "Gasolina":"#f97316", "Álcool":"#4ade80", "GNV":"#38bdf8", "Elétrico":"#a78bfa" };
+  var WEEKDAYS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  var MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+
+  // ---------- storage ----------
+  function loadFromLocalFallback(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        state = Object.assign({}, DEFAULT_STATE, parsed);
+        state.config = Object.assign({}, DEFAULT_STATE.config, parsed.config || {});
+        state.entries = parsed.entries || [];
+        return;
+      }
+    }catch(e){ /* ignore, fall through to default */ }
+    state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  }
+
+  function loadState(){
+    return new Promise(function(resolve){
+      if(window.storage && typeof window.storage.get === "function"){
+        window.storage.get(STORAGE_KEY, false).then(function(res){
+          if(res && res.value){
+            try{
+              var parsed = JSON.parse(res.value);
+              state = Object.assign({}, DEFAULT_STATE, parsed);
+              state.config = Object.assign({}, DEFAULT_STATE.config, parsed.config || {});
+              state.entries = parsed.entries || [];
+            }catch(e){ state = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+          } else {
+            state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+          }
+          resolve();
+        }).catch(function(){
+          loadFromLocalFallback();
+          resolve();
+        });
+      } else {
+        loadFromLocalFallback();
+        resolve();
+      }
+    });
+  }
+
+  function saveState(){
+    if(window.storage && typeof window.storage.set === "function"){
+      return window.storage.set(STORAGE_KEY, JSON.stringify(state), false).then(function(res){
+        if(!res){ throw new Error("Sem resposta do armazenamento"); }
+        return res;
+      }).catch(function(err){
+        console.error("Erro ao salvar (storage do Claude), tentando local:", err);
+        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
+        catch(e2){ showToast("Não foi possível salvar. Tente novamente."); return false; }
+      });
+    }
+    return new Promise(function(resolve){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); resolve(true); }
+      catch(err){ console.error("Erro ao salvar:", err); showToast("Não foi possível salvar. Tente novamente."); resolve(false); }
+    });
+  }
+
+  // ---------- helpers ----------
+  function fmtMoney(v){
+    var sign = v < 0 ? "-" : "";
+    var abs = Math.abs(v || 0);
+    return sign + "R$ " + abs.toLocaleString("pt-BR",{minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function fmtMoneyShort(v){
+    var abs = Math.abs(v||0);
+    var sign = v<0?"-":"";
+    if(abs>=1000) return sign + (abs/1000).toLocaleString("pt-BR",{maximumFractionDigits:1}) + "k";
+    return sign + abs.toLocaleString("pt-BR",{maximumFractionDigits:0});
+  }
+  function toDateStr(d){
+    var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0");
+    return y+"-"+m+"-"+day;
+  }
+  function parseDateStr(s){
+    var parts = s.split("-");
+    return new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+  }
+  function todayStr(){ return toDateStr(new Date()); }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+  function hexToRgb(hex){ var n=parseInt(hex.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+  function rgbToCss(rgb){ return "rgb("+rgb[0]+","+rgb[1]+","+rgb[2]+")"; }
+  function lerpColor(c1,c2,t){
+    var a=hexToRgb(c1), b=hexToRgb(c2);
+    return rgbToCss([Math.round(a[0]+(b[0]-a[0])*t), Math.round(a[1]+(b[1]-a[1])*t), Math.round(a[2]+(b[2]-a[2])*t)]);
+  }
+  // yellow at 0, green when positive (reaches full green at ratio>=1), red when negative (full red at ratio<=-1)
+  function goalColor(value, goal){
+    var g = Math.abs(goal) > 0 ? Math.abs(goal) : 1;
+    var ratio = clamp(value / g, -1, 1);
+    if(ratio >= 0) return lerpColor("#eab308", "#22c55e", ratio);
+    return lerpColor("#eab308", "#ef4444", -ratio);
+  }
+
+  function getEntriesInRange(startStr, endStr){
+    return state.entries.filter(function(e){ return e.date >= startStr && e.date <= endStr; });
+  }
+  function sumNet(entries){
+    var r=0,d=0;
+    entries.forEach(function(e){ if(e.tipo==="receita") r+=e.valor; else d+=e.valor; });
+    return { receita:r, despesa:d, liquido:r-d };
+  }
+  function startOfWeek(d){
+    var nd = new Date(d); nd.setHours(0,0,0,0);
+    nd.setDate(nd.getDate() - nd.getDay());
+    return nd;
+  }
+  function startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+  function endOfMonth(d){ return new Date(d.getFullYear(), d.getMonth()+1, 0); }
+  function daysInMonth(d){ return endOfMonth(d).getDate(); }
+
+  // ---------- toast ----------
+  var toastTimer=null;
+  function showToast(msg){
+    var t=document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+
+  // ---------- tabs ----------
+  function switchTab(name){
+    document.querySelectorAll(".tab-panel").forEach(function(p){ p.classList.remove("active"); });
+    document.getElementById("tab-"+name).classList.add("active");
+    document.querySelectorAll("nav.bottom-nav button").forEach(function(b){
+      b.classList.toggle("active", b.dataset.tab===name);
+    });
+    if(name==="painel") renderPainel();
+    if(name==="historico") renderHistorico();
+    if(name==="config") renderConfig();
+  }
+
+  // ---------- PAINEL render ----------
+  function renderPainel(){
+    var today = todayStr();
+    var todayEntries = state.entries.filter(function(e){ return e.date===today; });
+    var t = sumNet(todayEntries);
+    var kmToday = todayEntries.reduce(function(s,e){ return s + (e.tipo==="receita" ? (e.km||0) : 0); }, 0);
+
+    document.getElementById("tmValue").textContent = fmtMoney(t.liquido);
+    document.getElementById("tmReceita").textContent = fmtMoney(t.receita);
+    document.getElementById("tmDespesa").textContent = fmtMoney(t.despesa);
+    document.getElementById("tmKm").textContent = kmToday.toLocaleString("pt-BR",{maximumFractionDigits:1}) + " km";
+    document.getElementById("tmRkm").textContent = kmToday>0 ? fmtMoney(t.receita/kmToday) : "—";
+
+    var cToday = goalColor(t.liquido, state.config.metaDiaria);
+    document.getElementById("tmValue").style.color = cToday;
+    document.getElementById("tmGlow").style.background = cToday;
+    var badge = document.getElementById("tmBadge");
+    badge.textContent = t.liquido >= 0 ? "positivo" : "negativo";
+    badge.style.borderColor = cToday; badge.style.color = cToday;
+
+    // goals
+    setGoalRow("gDiaria", t.liquido, state.config.metaDiaria);
+    var wk = startOfWeek(new Date());
+    var wkEnd = new Date(wk); wkEnd.setDate(wkEnd.getDate()+6);
+    var weekEntries = getEntriesInRange(toDateStr(wk), toDateStr(wkEnd));
+    var wSum = sumNet(weekEntries);
+    setGoalRow("gSemanal", wSum.liquido, state.config.metaSemanal);
+
+    var mStart = startOfMonth(new Date()), mEnd = endOfMonth(new Date());
+    var monthEntries = getEntriesInRange(toDateStr(mStart), toDateStr(mEnd));
+    var mSum = sumNet(monthEntries);
+    setGoalRow("gMensal", mSum.liquido, state.config.metaMensal);
+
+    // week chart (navigable — independente da meta semanal atual)
+    renderWeekSection();
+
+    // month chart (by week)
+    document.getElementById("monthRangeLbl").textContent = "("+MONTHS[mStart.getMonth()]+")";
+    renderBarChart("monthChart", buildMonthBars(mStart, mEnd), state.config.metaSemanal);
+    document.getElementById("monthNet").textContent = fmtMoney(mSum.liquido);
+    document.getElementById("monthNet").style.color = goalColor(mSum.liquido, state.config.metaMensal);
+    var daysPassedMonth = clamp(new Date().getDate(), 1, daysInMonth(new Date()));
+    var projMonth = (mSum.liquido/daysPassedMonth) * daysInMonth(new Date());
+    document.getElementById("monthProj").textContent = fmtMoney(projMonth);
+    document.getElementById("monthProj").style.color = goalColor(projMonth, state.config.metaMensal);
+
+    renderPlatformList(monthEntries);
+    renderFuelList(monthEntries);
+  }
+
+  function setGoalRow(prefix, value, goal){
+    var pct = goal>0 ? clamp((value/goal)*100, 0, 100) : (value>0?100:0);
+    document.getElementById(prefix+"Fill").style.width = pct+"%";
+    document.getElementById(prefix+"Fill").style.background = goalColor(value, goal);
+    document.getElementById(prefix+"Val").textContent = fmtMoney(value) + " / " + fmtMoney(goal);
+  }
+
+  var weekCursor = startOfWeek(new Date());
+
+  function daysElapsedInWeek(weekStart){
+    var today = new Date(); today.setHours(0,0,0,0);
+    var count = 0;
+    for(var i=0;i<7;i++){
+      var d = new Date(weekStart); d.setDate(d.getDate()+i); d.setHours(0,0,0,0);
+      if(d <= today) count++;
+    }
+    return count;
+  }
+
+  function renderWeekSection(){
+    var wkStart = new Date(weekCursor);
+    var wkEnd = new Date(wkStart); wkEnd.setDate(wkEnd.getDate()+6);
+    var weekEntries = getEntriesInRange(toDateStr(wkStart), toDateStr(wkEnd));
+    var wSum = sumNet(weekEntries);
+    var isCurrentWeek = toDateStr(wkStart) === toDateStr(startOfWeek(new Date()));
+
+    document.getElementById("weekRangeLabel").textContent =
+      wkStart.getDate()+" "+MONTHS[wkStart.getMonth()].slice(0,3)+" – "+wkEnd.getDate()+" "+MONTHS[wkEnd.getMonth()].slice(0,3) + (isCurrentWeek ? " · atual" : "");
+
+    renderBarChart("weekChart", buildWeekBars(wkStart), state.config.metaDiaria);
+    document.getElementById("weekNet").textContent = fmtMoney(wSum.liquido);
+    document.getElementById("weekNet").style.color = goalColor(wSum.liquido, state.config.metaSemanal);
+
+    var daysPassedWeek = daysElapsedInWeek(wkStart);
+    var projWeek = daysPassedWeek > 0 ? (wSum.liquido/daysPassedWeek)*7 : 0;
+    document.getElementById("weekProj").textContent = fmtMoney(projWeek);
+    document.getElementById("weekProj").style.color = goalColor(projWeek, state.config.metaSemanal);
+  }
+
+  function buildWeekBars(weekStart){
+    var bars=[];
+    for(var i=0;i<7;i++){
+      var d = new Date(weekStart); d.setDate(d.getDate()+i);
+      var ds = toDateStr(d);
+      var dayEntries = state.entries.filter(function(e){return e.date===ds;});
+      var s = sumNet(dayEntries);
+      bars.push({ label: WEEKDAYS[i], value: s.liquido, goal: state.config.metaDiaria });
+    }
+    return bars;
+  }
+  function buildMonthBars(mStart, mEnd){
+    var bars=[]; var cur = new Date(mStart); var wIndex=1;
+    while(cur <= mEnd){
+      var wkStart = new Date(cur);
+      var wkEnd = new Date(cur); wkEnd.setDate(wkEnd.getDate()+6);
+      if(wkEnd > mEnd) wkEnd = new Date(mEnd);
+      var entries = getEntriesInRange(toDateStr(wkStart), toDateStr(wkEnd));
+      var s = sumNet(entries);
+      bars.push({ label:"S"+wIndex, value:s.liquido, goal: state.config.metaSemanal });
+      cur.setDate(cur.getDate()+7);
+      wIndex++;
+    }
+    return bars;
+  }
+
+  function renderBarChart(containerId, bars, goalRef){
+    var el = document.getElementById(containerId);
+    var maxAbs = Math.max.apply(null, bars.map(function(b){return Math.abs(b.value);}).concat([Math.abs(goalRef)||1, 1]));
+    el.innerHTML = "";
+    bars.forEach(function(b){
+      var col = document.createElement("div"); col.className="bar-col";
+      var valLbl = document.createElement("div"); valLbl.className="bar-val"; valLbl.textContent = fmtMoneyShort(b.value);
+      var bar = document.createElement("div"); bar.className="bar";
+      var heightPct = clamp((Math.abs(b.value)/maxAbs)*100, 2, 100);
+      bar.style.height = heightPct+"%";
+      bar.style.background = goalColor(b.value, b.goal);
+      var lbl = document.createElement("div"); lbl.className="bar-label"; lbl.textContent = b.label;
+      col.appendChild(valLbl); col.appendChild(bar); col.appendChild(lbl);
+      el.appendChild(col);
+    });
+  }
+
+  function renderPlatformList(entries){
+    var totals = {};
+    Object.keys(PLAT_COLORS).forEach(function(p){ totals[p]=0; });
+    entries.forEach(function(e){ if(e.tipo==="receita" && totals.hasOwnProperty(e.sub)) totals[e.sub]+=e.valor; });
+    var max = Math.max.apply(null, Object.values(totals).concat([1]));
+    var el = document.getElementById("platformList"); el.innerHTML="";
+    Object.keys(totals).forEach(function(p){
+      var row = document.createElement("div"); row.className="plat-row"; row.style.flexDirection="column"; row.style.alignItems="stretch"; row.style.gap="4px";
+      row.innerHTML =
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<span class="dot" style="background:'+PLAT_COLORS[p]+'"></span>' +
+          '<span class="plat-name">'+p+'</span>' +
+          '<span class="plat-val">'+fmtMoney(totals[p])+'</span>' +
+        '</div>' +
+        '<div class="plat-bar-track"><div class="plat-bar-fill" style="width:'+((totals[p]/max)*100)+'%; background:'+PLAT_COLORS[p]+'"></div></div>';
+      el.appendChild(row);
+    });
+  }
+
+  function renderFuelList(entries){
+    var totals = {};
+    Object.keys(FUEL_COLORS).forEach(function(f){ totals[f]=0; });
+    entries.forEach(function(e){ if(e.tipo==="despesa" && e.cat==="combustivel" && totals.hasOwnProperty(e.sub)) totals[e.sub]+=e.valor; });
+    var max = Math.max.apply(null, Object.values(totals).concat([1]));
+    var el = document.getElementById("fuelList"); el.innerHTML="";
+    var any = Object.values(totals).some(function(v){return v>0;});
+    if(!any){
+      el.innerHTML = '<p class="section-note" style="margin:0;">Nenhum gasto de combustível registrado este mês.</p>';
+      return;
+    }
+    Object.keys(totals).forEach(function(f){
+      if(totals[f]<=0) return;
+      var row = document.createElement("div"); row.style.display="flex"; row.style.flexDirection="column"; row.style.gap="4px";
+      row.innerHTML =
+        '<div style="display:flex;align-items:center;gap:10px;">' +
+          '<span class="dot" style="background:'+FUEL_COLORS[f]+'"></span>' +
+          '<span class="plat-name">'+f+'</span>' +
+          '<span class="plat-val">'+fmtMoney(totals[f])+'</span>' +
+        '</div>' +
+        '<div class="plat-bar-track"><div class="plat-bar-fill" style="width:'+((totals[f]/max)*100)+'%; background:'+FUEL_COLORS[f]+'"></div></div>';
+      el.appendChild(row);
+    });
+  }
+
+  // ---------- REGISTRAR ----------
+  var formState = { tipo:"receita", plat:"Uber", cat:"combustivel", fuel:"Gasolina" };
+
+  function initRegistrarForm(){
+    document.getElementById("fData").value = todayStr();
+
+    document.getElementById("tipoSeg").addEventListener("click", function(e){
+      var btn = e.target.closest("button"); if(!btn) return;
+      formState.tipo = btn.dataset.tipo;
+      document.querySelectorAll("#tipoSeg button").forEach(function(b){b.classList.toggle("active", b===btn);});
+      document.getElementById("blocoReceita").style.display = formState.tipo==="receita" ? "" : "none";
+      document.getElementById("blocoDespesa").style.display = formState.tipo==="despesa" ? "" : "none";
+    });
+
+    document.getElementById("platChips").addEventListener("click", function(e){
+      var chip = e.target.closest(".chip"); if(!chip) return;
+      formState.plat = chip.dataset.plat;
+      document.querySelectorAll("#platChips .chip").forEach(function(c){c.classList.toggle("active", c===chip);});
+    });
+
+    document.getElementById("catChips").addEventListener("click", function(e){
+      var chip = e.target.closest(".chip"); if(!chip) return;
+      formState.cat = chip.dataset.cat;
+      document.querySelectorAll("#catChips .chip").forEach(function(c){c.classList.toggle("active", c===chip);});
+      document.getElementById("blocoCombustivel").style.display = formState.cat==="combustivel" ? "" : "none";
+      document.getElementById("blocoVeiculoLabel").style.display = formState.cat==="veiculo" ? "" : "none";
+      document.getElementById("blocoOutrosLabel").style.display = formState.cat==="outros" ? "" : "none";
+      if(formState.cat==="veiculo") updateVeiculoNote();
+    });
+
+    document.getElementById("fuelChips").addEventListener("click", function(e){
+      var chip = e.target.closest(".chip"); if(!chip) return;
+      formState.fuel = chip.dataset.fuel;
+      document.querySelectorAll("#fuelChips .chip").forEach(function(c){c.classList.toggle("active", c===chip);});
+    });
+
+    document.getElementById("btnSalvar").addEventListener("click", salvarLancamento);
+  }
+
+  function updateVeiculoNote(){
+    var mode = state.config.vehicleMode;
+    var periodo = state.config.vehiclePeriod==="semanal" ? "semanal" : "mensal";
+    var txt = mode==="alugado" ? "Esta despesa será registrada como Aluguel do veículo (pagamento "+periodo+")." :
+               mode==="comprado" ? "Esta despesa será registrada como Prestação (financiamento) do veículo (pagamento "+periodo+")." :
+               "Veículo próprio e quitado — registre aqui despesas gerais com o veículo.";
+    document.getElementById("veiculoNote").textContent = txt;
+    var fv = document.getElementById("fValorDespesa");
+    if(mode!=="proprio" && state.config.valorVeiculo>0 && !fv.value){
+      fv.value = state.config.valorVeiculo;
+    }
+  }
+
+  function salvarLancamento(){
+    var date = document.getElementById("fData").value || todayStr();
+    var obs = document.getElementById("fObs").value.trim();
+    var entry = { id:uid(), date:date, obs:obs };
+
+    if(formState.tipo==="receita"){
+      var valor = parseFloat(document.getElementById("fValorReceita").value);
+      if(!valor || valor<=0){ showToast("Informe o valor recebido."); return; }
+      entry.tipo="receita"; entry.sub=formState.plat; entry.valor=valor;
+      entry.km = parseFloat(document.getElementById("fKmReceita").value) || 0;
+      entry.cat = "corrida";
+    } else {
+      var valorD = parseFloat(document.getElementById("fValorDespesa").value);
+      if(!valorD || valorD<=0){ showToast("Informe o valor gasto."); return; }
+      entry.tipo="despesa"; entry.valor=valorD; entry.cat=formState.cat;
+      if(formState.cat==="combustivel"){ entry.sub = formState.fuel; }
+      else if(formState.cat==="lanche"){ entry.sub = "Lanche"; }
+      else if(formState.cat==="veiculo"){
+        entry.sub = state.config.vehicleMode==="comprado" ? "Prestação" : state.config.vehicleMode==="alugado" ? "Aluguel" : "Manutenção";
+        if(state.config.vehicleMode!=="proprio") entry.periodo = state.config.vehiclePeriod==="semanal" ? "semanal" : "mensal";
+      } else {
+        var desc = document.getElementById("fOutrosDesc").value.trim();
+        entry.sub = desc || "Outros";
+      }
+    }
+
+    state.entries.push(entry);
+    saveState().then(function(ok){
+      if(!ok){
+        state.entries = state.entries.filter(function(e){ return e!==entry; });
+        showToast("Não consegui salvar. Toque em Registrar de novo.");
+        return;
+      }
+      showToast(formState.tipo==="receita" ? "Corrida registrada." : "Despesa registrada.");
+      resetForm();
+    });
+  }
+
+  function resetForm(){
+    document.getElementById("fValorReceita").value="";
+    document.getElementById("fKmReceita").value="";
+    document.getElementById("fValorDespesa").value="";
+    document.getElementById("fOutrosDesc").value="";
+    document.getElementById("fObs").value="";
+    document.getElementById("fData").value = todayStr();
+  }
+
+  // ---------- HISTÓRICO ----------
+  function renderHistorico(){
+    var mStart = new Date(histCursor.getFullYear(), histCursor.getMonth(), 1);
+    var mEnd = endOfMonth(mStart);
+    document.getElementById("histMonthLabel").textContent = MONTHS[mStart.getMonth()] + " " + mStart.getFullYear();
+
+    var entries = getEntriesInRange(toDateStr(mStart), toDateStr(mEnd));
+    var sum = sumNet(entries);
+    document.getElementById("histReceita").textContent = fmtMoney(sum.receita);
+    document.getElementById("histDespesa").textContent = fmtMoney(sum.despesa);
+    document.getElementById("histLiquido").textContent = fmtMoney(sum.liquido);
+    document.getElementById("histLiquido").style.color = goalColor(sum.liquido, state.config.metaMensal);
+
+    var listEl = document.getElementById("histList");
+    listEl.innerHTML = "";
+
+    if(entries.length===0){
+      listEl.innerHTML =
+        '<div class="empty-state"><div class="es-icon">🗒️</div>' +
+        '<div class="es-title">Nada por aqui ainda</div>' +
+        '<div class="es-sub">Os lançamentos deste mês vão aparecer aqui assim<br>que você registrar sua primeira corrida ou despesa.</div></div>';
+      return;
+    }
+
+    var byDate = {};
+    entries.forEach(function(e){ (byDate[e.date] = byDate[e.date]||[]).push(e); });
+    var dates = Object.keys(byDate).sort().reverse();
+
+    dates.forEach(function(ds){
+      var dayEntries = byDate[ds].sort(function(a,b){ return a.id < b.id ? 1 : -1; });
+      var dSum = sumNet(dayEntries);
+      var group = document.createElement("div"); group.className="day-group";
+      var d = parseDateStr(ds);
+      var dLabel = d.toLocaleDateString("pt-BR", {weekday:"short", day:"2-digit", month:"short"});
+      group.innerHTML = '<div class="day-group-head"><span class="dg-date">'+dLabel+'</span><span class="dg-net" style="color:'+goalColor(dSum.liquido,state.config.metaDiaria)+'">'+fmtMoney(dSum.liquido)+'</span></div>';
+      var rowsWrap = document.createElement("div");
+      dayEntries.forEach(function(e){
+        var row = document.createElement("div"); row.className="entry-row";
+        var isReceita = e.tipo==="receita";
+        var color = isReceita ? (PLAT_COLORS[e.sub]||"#22c55e") : (e.cat==="combustivel" ? (FUEL_COLORS[e.sub]||"#ef4444") : "#ef4444");
+        var initials = (e.sub||"?").slice(0,2).toUpperCase();
+        var subtitle = isReceita ? (e.km? e.km+" km" : "") : (catLabel(e.cat) + (e.periodo ? " · "+e.periodo : ""));
+        row.innerHTML =
+          '<div class="entry-icon" style="background:'+color+'22; color:'+color+'; border:1px solid '+color+'44;">'+initials+'</div>' +
+          '<div class="entry-info"><div class="entry-title">'+e.sub+(e.obs? ' · '+escapeHtml(e.obs):'')+'</div><div class="entry-sub">'+subtitle+'</div></div>' +
+          '<div class="entry-val" style="color:'+(isReceita?"var(--green)":"var(--red)")+'">'+(isReceita?"+":"-")+fmtMoney(Math.abs(e.valor)).replace("R$ ","R$ ")+'</div>' +
+          '<button class="entry-del" data-id="'+e.id+'">✕</button>';
+        rowsWrap.appendChild(row);
+      });
+      group.appendChild(rowsWrap);
+      listEl.appendChild(group);
+    });
+
+    listEl.querySelectorAll(".entry-del").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        var id = btn.dataset.id;
+        var removed = state.entries.filter(function(e){ return e.id===id; })[0];
+        state.entries = state.entries.filter(function(e){ return e.id!==id; });
+        saveState().then(function(ok){
+          if(!ok){
+            if(removed) state.entries.push(removed);
+            showToast("Não consegui remover. Tente de novo.");
+            renderHistorico();
+            return;
+          }
+          showToast("Lançamento removido.");
+          renderHistorico();
+        });
+      });
+    });
+  }
+  function catLabel(cat){
+    return { combustivel:"Combustível", lanche:"Lanche", veiculo:"Veículo", corrida:"Corrida", outros:"Outros" }[cat] || cat;
+  }
+  function escapeHtml(s){
+    var d = document.createElement("div"); d.textContent = s; return d.innerHTML;
+  }
+
+  document.getElementById("prevMonth").addEventListener("click", function(){
+    histCursor.setMonth(histCursor.getMonth()-1); renderHistorico();
+  });
+  document.getElementById("nextMonth").addEventListener("click", function(){
+    histCursor.setMonth(histCursor.getMonth()+1); renderHistorico();
+  });
+
+  document.getElementById("weekPrev").addEventListener("click", function(){
+    weekCursor.setDate(weekCursor.getDate()-7); renderWeekSection();
+  });
+  document.getElementById("weekNext").addEventListener("click", function(){
+    weekCursor.setDate(weekCursor.getDate()+7); renderWeekSection();
+  });
+
+  // ---------- CONFIG ----------
+  function renderConfig(){
+    document.getElementById("cfgMetaDiaria").value = state.config.metaDiaria || "";
+    document.getElementById("cfgMetaSemanal").value = state.config.metaSemanal || "";
+    document.getElementById("cfgMetaMensal").value = state.config.metaMensal || "";
+    document.getElementById("cfgValorVeiculo").value = state.config.valorVeiculo || "";
+    document.querySelectorAll("#vehicleSeg button").forEach(function(b){
+      b.classList.toggle("active", b.dataset.v===state.config.vehicleMode);
+    });
+    document.querySelectorAll("#periodoSeg button").forEach(function(b){
+      b.classList.toggle("active", b.dataset.p===(state.config.vehiclePeriod||"mensal"));
+    });
+    updateVehicleHelp();
+  }
+
+  var AVG_DAYS_MONTH = 30.4368;
+  var AVG_WEEKS_MONTH = AVG_DAYS_MONTH / 7;
+
+  function updateVeiculoBreakdown(){
+    var raw = parseFloat(document.getElementById("cfgValorVeiculo").value) || 0;
+    var periodo = document.getElementById("periodoSeg").querySelector("button.active").dataset.p;
+    var semana, dia;
+    if(periodo==="mensal"){ semana = raw / AVG_WEEKS_MONTH; dia = raw / AVG_DAYS_MONTH; }
+    else { semana = raw; dia = raw / 7; }
+    document.getElementById("vbSemana").textContent = raw>0 ? fmtMoney(semana) : "—";
+    document.getElementById("vbDia").textContent = raw>0 ? fmtMoney(dia) : "—";
+  }
+
+  function updateVehicleHelp(){
+    var mode = state.config.vehicleMode;
+    var periodo = state.config.vehiclePeriod==="semanal" ? "semanal" : "mensal";
+    var help = document.getElementById("vehicleHelp");
+    var lbl = document.getElementById("lblValorVeiculo");
+    var bloco = document.getElementById("blocoValorVeiculo");
+    var blocoPeriodo = document.getElementById("blocoPeriodo");
+    if(mode==="alugado"){
+      help.textContent = 'Ao registrar uma despesa de "Veículo", ela será marcada como Aluguel ('+periodo+').';
+      lbl.textContent = "Valor do aluguel — pagamento " + periodo + " (R$)";
+      bloco.style.display=""; blocoPeriodo.style.display="";
+    } else if(mode==="comprado"){
+      help.textContent = 'Ao registrar uma despesa de "Veículo", ela será marcada como Prestação ('+periodo+').';
+      lbl.textContent = "Valor da prestação — pagamento " + periodo + " (R$)";
+      bloco.style.display=""; blocoPeriodo.style.display="";
+    } else {
+      help.textContent = 'Veículo próprio e quitado — sem aluguel ou prestação recorrente.';
+      bloco.style.display="none"; blocoPeriodo.style.display="none";
+    }
+    updateVeiculoBreakdown();
+  }
+
+  document.getElementById("vehicleSeg").addEventListener("click", function(e){
+    var btn = e.target.closest("button"); if(!btn) return;
+    state.config.vehicleMode = btn.dataset.v;
+    document.querySelectorAll("#vehicleSeg button").forEach(function(b){b.classList.toggle("active", b===btn);});
+    updateVehicleHelp();
+  });
+
+  document.getElementById("periodoSeg").addEventListener("click", function(e){
+    var btn = e.target.closest("button"); if(!btn) return;
+    state.config.vehiclePeriod = btn.dataset.p;
+    document.querySelectorAll("#periodoSeg button").forEach(function(b){b.classList.toggle("active", b===btn);});
+    updateVehicleHelp();
+  });
+
+  document.getElementById("cfgValorVeiculo").addEventListener("input", updateVeiculoBreakdown);
+
+  document.getElementById("btnSalvarConfig").addEventListener("click", function(){
+    state.config.metaDiaria = parseFloat(document.getElementById("cfgMetaDiaria").value) || 0;
+    state.config.metaSemanal = parseFloat(document.getElementById("cfgMetaSemanal").value) || 0;
+    state.config.metaMensal = parseFloat(document.getElementById("cfgMetaMensal").value) || 0;
+    state.config.valorVeiculo = parseFloat(document.getElementById("cfgValorVeiculo").value) || 0;
+    saveState().then(function(ok){
+      showToast(ok ? "Configurações salvas." : "Não consegui salvar. Tente de novo.");
+    });
+  });
+
+  document.getElementById("btnReset").addEventListener("click", function(){
+    if(!confirm("Isso vai apagar todos os lançamentos salvos. Deseja continuar?")) return;
+    state.entries = [];
+    saveState().then(function(ok){
+      showToast(ok ? "Dados apagados." : "Não consegui apagar. Tente de novo.");
+      renderPainel();
+    });
+  });
+
+  // ---------- import CSV ----------
+  function normalizeDate(s){
+    s = (s||"").trim();
+    var m1 = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(m1) return m1[1]+"-"+m1[2].padStart(2,"0")+"-"+m1[3].padStart(2,"0");
+    var m2 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(m2) return m2[3]+"-"+m2[2].padStart(2,"0")+"-"+m2[1].padStart(2,"0");
+    return null;
+  }
+
+  document.getElementById("btnImportCsv").addEventListener("click", function(){
+    var raw = document.getElementById("csvInput").value.trim();
+    if(!raw){ showToast("Cole o extrato antes de importar."); return; }
+    var lines = raw.split(/\r?\n/).filter(function(l){ return l.trim().length>0; });
+    var validPlats = Object.keys(PLAT_COLORS);
+    var added=0, skipped=0;
+    var newlyAdded = [];
+    lines.forEach(function(line){
+      var parts = line.split(/[,;]/).map(function(p){ return p.trim(); });
+      if(parts.length<3){ skipped++; return; }
+      var dateStr = normalizeDate(parts[0]);
+      var plat = validPlats.filter(function(p){ return p.toLowerCase()===parts[1].toLowerCase(); })[0] || parts[1];
+      var valor = parseFloat(parts[2].replace(",","."));
+      var km = parts[3] ? parseFloat(parts[3].replace(",",".")) : 0;
+      if(!dateStr || !valor || valor<=0){ skipped++; return; }
+      var e = { id:uid(), date:dateStr, tipo:"receita", sub:plat, valor:valor, km:km||0, cat:"corrida", obs:"" };
+      state.entries.push(e);
+      newlyAdded.push(e);
+      added++;
+    });
+    if(added===0){ showToast("Nenhuma linha válida encontrada."); return; }
+    saveState().then(function(ok){
+      if(!ok){
+        state.entries = state.entries.filter(function(e){ return newlyAdded.indexOf(e)===-1; });
+        showToast("Não consegui salvar a importação. Tente de novo.");
+        return;
+      }
+      showToast(added+" lançamento(s) importado(s)" + (skipped? ", "+skipped+" ignorado(s)":"") + ".");
+      document.getElementById("csvInput").value = "";
+      renderPainel();
+    });
+  });
+
+  // ---------- nav ----------
+  document.querySelectorAll("nav.bottom-nav button").forEach(function(btn){
+    btn.addEventListener("click", function(){ switchTab(btn.dataset.tab); });
+  });
+
+  // ---------- header date ----------
+  function renderHeaderDate(){
+    var d = new Date();
+    var opts = { weekday:"short", day:"2-digit", month:"short" };
+    document.getElementById("headerDate").textContent = d.toLocaleDateString("pt-BR", opts);
+  }
+
+  // ---------- init ----------
+  loadState().then(function(){
+    renderHeaderDate();
+    initRegistrarForm();
+    renderPainel();
+    renderConfig();
+  });
+
+  // ---------- PWA: registra o service worker (funciona offline) ----------
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("./sw.js").catch(function(err){
+        console.error("Erro ao registrar service worker:", err);
+      });
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
