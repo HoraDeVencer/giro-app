@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>GIRO — Controle do Motorista</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#08090b">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GIRO">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -323,18 +330,6 @@ nav.bottom-nav button.active{color:var(--yellow);}
     <div class="field">
       <label>Data</label>
       <input type="date" id="fData" class="mono-input">
-    </div>
-
-    <div class="card" id="ocrCard">
-      <p class="card-title">Leitura automática <span style="text-transform:none; letter-spacing:0; font-weight:400; color:var(--text-dim);">via foto</span></p>
-      <p class="section-note" style="margin-top:0;">Tire um print da tela de ganhos do app (Uber, 99, inDrive) e envie aqui — eu preencho os campos abaixo pra você conferir antes de salvar.</p>
-      <input type="file" accept="image/*" id="ocrFileInput" style="display:none;">
-      <button class="btn-secondary" id="btnOcr">🖼️ Enviar print da tela</button>
-      <p class="section-note" id="ocrStatus" style="display:none; margin:10px 0 0;"></p>
-      <div id="ocrPreview" style="display:none; margin-top:12px;">
-        <div id="ocrPreviewList" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
-        <button class="btn-primary" id="btnOcrConfirm">Confirmar e adicionar</button>
-      </div>
     </div>
 
     <!-- RECEITA fields -->
@@ -883,7 +878,6 @@ nav.bottom-nav button.active{color:var(--yellow);}
       document.querySelectorAll("#tipoSeg button").forEach(function(b){b.classList.toggle("active", b===btn);});
       document.getElementById("blocoReceita").style.display = formState.tipo==="receita" ? "" : "none";
       document.getElementById("blocoDespesa").style.display = formState.tipo==="despesa" ? "" : "none";
-      document.getElementById("ocrCard").style.display = formState.tipo==="receita" ? "" : "none";
     });
 
     document.getElementById("platChips").addEventListener("click", function(e){
@@ -909,180 +903,6 @@ nav.bottom-nav button.active{color:var(--yellow);}
     });
 
     document.getElementById("btnSalvar").addEventListener("click", salvarLancamento);
-    document.getElementById("btnOcr").addEventListener("click", function(){
-      document.getElementById("ocrFileInput").click();
-    });
-    document.getElementById("ocrFileInput").addEventListener("change", handleOcrFile);
-    document.getElementById("btnOcrConfirm").addEventListener("click", confirmOcrEntries);
-  }
-
-  function handleOcrFile(e){
-    var file = e.target.files[0];
-    e.target.value = "";
-    if(!file) return;
-    var statusEl = document.getElementById("ocrStatus");
-    statusEl.style.display = "block";
-    statusEl.textContent = "Lendo a imagem...";
-    var reader = new FileReader();
-    reader.onload = function(){
-      var base64 = reader.result.split(",")[1];
-      var mediaType = file.type || "image/jpeg";
-      callOcrApi(base64, mediaType, statusEl);
-    };
-    reader.onerror = function(){ statusEl.textContent = "Não consegui abrir essa imagem. Tente outra foto."; };
-    reader.readAsDataURL(file);
-  }
-
-  function callOcrApi(base64, mediaType, statusEl){
-    var hoje = new Date();
-    var weekdayName = WEEKDAYS[hoje.getDay()];
-    var prompt = "Você está vendo um print da tela de ganhos de um app de motorista (Uber, 99/99Pop, inDrive ou similar). PRIORIDADE MÁXIMA pra descobrir a data: essas telas quase sempre mostram, na própria imagem, um intervalo de datas no topo (ex: '17 de ago. - 24 de ago.') e/ou números de dia do mês escritos em cima das abreviações dos dias da semana (ex: o número '17' em cima de 'Seg', '18' em cima de 'Ter'). Use ESSES NÚMEROS VISÍVEIS NA TELA pra montar a data exata (AAAA-MM-DD) — o dia do mês e o mês/ano estão escritos na própria imagem, não precisa calcular a partir de hoje. Só use o dia da semana de hoje como último recurso, e apenas se a tela realmente não mostrar nenhum número de dia do mês em lugar nenhum. A tela pode mostrar um valor único total (com um número de dia em destaque), OU vários valores separados por dia. Extraia CADA VALOR DE GANHO visível como um item separado no array, cada um com sua própria data. Hoje é " + todayStr() + " (" + weekdayName + "). Responda APENAS com um array JSON válido, sem markdown, sem crases, sem texto antes ou depois, exatamente neste formato: [{\"plataforma\": \"Uber\" ou \"99Pop\" ou \"inDrive\" ou \"Particular\" ou null, \"valor\": numero ou null, \"corridas\": numero ou null, \"km\": numero ou null, \"data\": \"AAAA-MM-DD\" ou null}]. Ignore/omita itens com valor null, vazio ou igual a zero. Só retorne data null se for realmente impossível determinar o dia a partir da imagem.";
-
-    fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({
-        model:"claude-sonnet-4-6",
-        max_tokens:600,
-        messages:[{
-          role:"user",
-          content:[
-            { type:"image", source:{ type:"base64", media_type:mediaType, data:base64 } },
-            { type:"text", text:prompt }
-          ]
-        }]
-      })
-    }).then(function(r){ return r.json(); })
-    .then(function(data){
-      var textBlocks = (data.content||[]).filter(function(b){ return b.type==="text"; }).map(function(b){ return b.text; });
-      var raw = textBlocks.join("").trim().replace(/```json|```/g,"").trim();
-      var parsed = null;
-      try{ parsed = JSON.parse(raw); }catch(err){ parsed = null; }
-      if(!parsed){
-        statusEl.textContent = "Não consegui ler os valores dessa imagem. Preencha manualmente.";
-        return;
-      }
-      if(!Array.isArray(parsed)) parsed = [parsed];
-      parsed = parsed.filter(function(item){ return item && item.valor && parseFloat(item.valor) > 0; });
-      if(parsed.length===0){
-        statusEl.textContent = "Não encontrei valores nessa imagem. Preencha manualmente.";
-        return;
-      }
-      buildOcrPreview(parsed, statusEl);
-    }).catch(function(err){
-      console.error("Erro OCR:", err);
-      statusEl.textContent = "Erro ao ler a imagem. Preencha manualmente.";
-    });
-  }
-
-  var pendingOcrEntries = [];
-
-  function buildOcrPreview(items, statusEl){
-    var anyDateGuessed = false;
-    pendingOcrEntries = items.map(function(item){
-      var normalized = normalizeDate(item.data);
-      if(!normalized) anyDateGuessed = true;
-      var dateStr = normalized || todayStr();
-      var plat = item.plataforma;
-      var validPlats = Object.keys(PLAT_COLORS);
-      if(validPlats.indexOf(plat) === -1) plat = formState.plat || "Uber";
-      return {
-        tempId: uid(),
-        date: dateStr,
-        dateGuessed: !normalized,
-        plataforma: plat,
-        valor: parseFloat(item.valor),
-        km: parseFloat(item.km) || 0,
-        corridas: item.corridas || null
-      };
-    });
-    var base = pendingOcrEntries.length > 1
-      ? ("Encontrei " + pendingOcrEntries.length + " dias nessa tela.")
-      : "Encontrei 1 valor nessa tela.";
-    statusEl.textContent = anyDateGuessed
-      ? (base + " ⚠ Não consegui identificar a data com certeza em pelo menos um item — confira a data marcada antes de confirmar, pode estar errada.")
-      : (base + " Confira abaixo antes de adicionar.");
-    renderOcrPreview();
-  }
-
-  function renderOcrPreview(){
-    var wrap = document.getElementById("ocrPreview");
-    var list = document.getElementById("ocrPreviewList");
-    if(pendingOcrEntries.length===0){ wrap.style.display="none"; return; }
-    wrap.style.display="";
-    list.innerHTML = "";
-    var total = 0;
-    pendingOcrEntries.forEach(function(item){
-      total += item.valor;
-      var d = parseDateStr(item.date);
-      var dLabel = d.toLocaleDateString("pt-BR", {weekday:"short", day:"2-digit", month:"short"});
-      var row = document.createElement("div");
-      row.className = "entry-row";
-      row.style.background = "var(--surface-2)";
-      row.style.borderRadius = "12px";
-      row.style.padding = "8px 10px";
-      row.style.border = item.dateGuessed ? "1px solid var(--yellow)" : "1px solid var(--border)";
-      var color = PLAT_COLORS[item.plataforma] || "#22c55e";
-      row.innerHTML =
-        '<div class="entry-icon" style="background:'+color+'22; color:'+color+'; border:1px solid '+color+'44; width:30px; height:30px; font-size:11px;">'+item.plataforma.slice(0,2).toUpperCase()+'</div>' +
-        '<div class="entry-info"><div class="entry-title" style="text-transform:capitalize;">'+dLabel+(item.dateGuessed?' ⚠':'')+'</div><div class="entry-sub">'+item.plataforma+(item.km?' · '+item.km+' km':'')+(item.dateGuessed?' · data não confirmada, toque no lápis':'')+'</div></div>' +
-        '<div class="entry-val" style="color:var(--green)">'+fmtMoney(item.valor)+'</div>' +
-        '<button class="entry-del" data-tempid="'+item.tempId+'" data-action="edit-date" style="font-size:14px;">✏️</button>' +
-        '<button class="entry-del" data-tempid="'+item.tempId+'" data-action="remove">✕</button>';
-      list.appendChild(row);
-    });
-    list.querySelectorAll('[data-action="remove"]').forEach(function(btn){
-      btn.addEventListener("click", function(){
-        pendingOcrEntries = pendingOcrEntries.filter(function(it){ return it.tempId !== btn.dataset.tempid; });
-        renderOcrPreview();
-        if(pendingOcrEntries.length===0){
-          document.getElementById("ocrStatus").textContent = "Nenhum lançamento restante. Envie outra imagem se quiser tentar de novo.";
-        }
-      });
-    });
-    list.querySelectorAll('[data-action="edit-date"]').forEach(function(btn){
-      btn.addEventListener("click", function(){
-        var item = pendingOcrEntries.filter(function(it){ return it.tempId===btn.dataset.tempid; })[0];
-        if(!item) return;
-        var novaData = prompt("Data correta (DD/MM/AAAA):", parseDateStr(item.date).toLocaleDateString("pt-BR"));
-        if(!novaData) return;
-        var norm = normalizeDate(novaData.trim());
-        if(!norm){ showToast("Data inválida. Use o formato DD/MM/AAAA."); return; }
-        item.date = norm;
-        item.dateGuessed = false;
-        renderOcrPreview();
-      });
-    });
-  }
-
-  function confirmOcrEntries(){
-    if(pendingOcrEntries.length===0) return;
-    var newEntries = pendingOcrEntries.map(function(item){
-      return {
-        id: uid(),
-        date: item.date,
-        tipo: "receita",
-        sub: item.plataforma,
-        valor: item.valor,
-        km: item.km || 0,
-        cat: "corrida",
-        obs: ""
-      };
-    });
-    newEntries.forEach(function(e){ state.entries.push(e); });
-    var count = newEntries.length;
-    saveState().then(function(ok){
-      if(!ok){
-        state.entries = state.entries.filter(function(e){ return newEntries.indexOf(e)===-1; });
-        showToast("Não consegui salvar. Toque em Confirmar de novo.");
-        return;
-      }
-      showToast(count + " lançamento(s) adicionado(s) com sucesso.");
-      pendingOcrEntries = [];
-      renderOcrPreview();
-      document.getElementById("ocrStatus").style.display = "none";
-      renderPainel();
-    });
   }
 
   function updateVeiculoNote(){
@@ -1392,6 +1212,15 @@ nav.bottom-nav button.active{color:var(--yellow);}
     renderPainel();
     renderConfig();
   });
+
+  // ---------- PWA: registra o service worker (funciona offline) ----------
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("./sw.js").catch(function(err){
+        console.error("Erro ao registrar service worker:", err);
+      });
+    });
+  }
 
 })();
 </script>
